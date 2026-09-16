@@ -21,6 +21,19 @@ VITE_MAPBOX_ACCESS_TOKEN=pk.your_public_mapbox_token
 
 Restart Vite. Use a public browser token with appropriate URL restrictions. Vite exposes `VITE_*` variables to the browser, so do not use a secret token.
 
+## Deploy
+
+Pushing to `main` runs `.github/workflows/deploy.yml`, which builds the site and publishes it to GitHub Pages at http://pathfinding.ai/viclens/. The build job runs in the `dev` environment and reads the Mapbox token from its `VITE_MAPBOX_ACCESS_TOKEN` variable. The workflow can also be started by hand from the Actions tab.
+
+The app can be served from a subpath. Set `BASE_PATH` when building, with a trailing slash, and every asset and data file is requested under it:
+
+```sh
+BASE_PATH=/viclens/ npm run build
+BASE_PATH=/viclens/ npx vite preview
+```
+
+The workflow takes the path from the Pages configuration, so it follows the repository name. Without `BASE_PATH` the site builds for the root.
+
 ## Explore
 
 - Search names, towns, school numbers, addresses and postcodes.
