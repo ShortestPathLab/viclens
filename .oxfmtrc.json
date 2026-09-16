@@ -1,0 +1,1 @@
+{ "ignorePatterns": ["public/data/**", "data/**", "artifacts/**", "dist/**", "package-lock.json"] }

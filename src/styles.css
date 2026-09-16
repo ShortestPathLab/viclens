@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "@fontsource-variable/inter";
+
+/* Project tokens. HeroUI already exposes its own palette to Tailwind, so this adds only what the
+   map needs on top of it. */
+@theme {
+  --font-sans: "Inter Variable", "Inter", system-ui, sans-serif;
+  /* The explorer panel and the map swap between floating card and drawer at this width. */
+  --breakpoint-md: 760px;
+}
+/* `inline` keeps these pointing at variables that are redefined per colour scheme, HeroUI's own
+   and the map's below. */
+@theme inline {
+  --color-accent-soft: var(--accent-soft);
+  --color-water: var(--water);
+  --color-zone-line: var(--zone-line);
+  --color-zone-fill: var(--zone-fill);
+  --color-lga-line: var(--lga-line);
+  --color-lga-fill: var(--lga-fill);
+}
+
+@layer base {
+  /* Map colours that have no HeroUI equivalent. They sit beside the palette HeroUI swaps. */
+  :root {
+    --panel-inset: 1.25rem;
+    --scrollbar-width: 0px;
+    --water: #dce9e7;
+    --zone-line: #64748b;
+    --zone-fill: #eef1f5;
+    --lga-line: #6e578f;
+    --lga-fill: #f0edf3;
+  }
+  .dark,
+  [data-theme="dark"] {
+    --water: #1b2523;
+    --zone-line: #94a3b8;
+    --zone-fill: #232a33;
+    --lga-line: #9784b5;
+    --lga-fill: #26213033;
+  }
+  body {
+    color: var(--color-foreground);
+    background: var(--color-background);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* A scrolling panel whose visible inset is the same on both sides: the gutter is always
+   reserved, and the scrollbar's own width comes off the end padding. */
+@utility panel-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  padding-inline-start: var(--panel-inset);
+  padding-inline-end: calc(var(--panel-inset) - var(--scrollbar-width, 0px));
+}
+
+@layer components {
+  /* HeroUI owns the switch's track, thumb, focus ring and motion. Only the row layout is ours,
+     and it has to reach inside the component, so it stays in CSS rather than as an escaped
+     arbitrary variant in the markup. */
+  .layer-toggle .switch__content {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
