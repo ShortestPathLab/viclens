@@ -1,4 +1,4 @@
-import { Button, Drawer, Link, Separator, Typography } from "@heroui/react";
+import { Button, Link, Modal, Separator, Typography } from "@heroui/react";
 import { ArrowUpRight, Info } from "lucide-react";
 
 const sources = [
@@ -23,21 +23,21 @@ const sources = [
     body: "Vicmap Admin boundaries, simplified for display. Totals come from the hidden LGA Raw Data sheet for February 2025, cover all sectors and ignore the school filters.",
   },
 ];
-// The button is the drawer's own trigger, so react-aria owns the open state and focus return.
-export default function AboutDrawer() {
+// The button is the modal's own trigger, so react-aria owns the open state and focus return.
+export default function AboutModal() {
   return (
-    <Drawer>
+    <Modal>
       <Button variant="ghost" size="sm">
         <Info size={14} /> About the data
       </Button>
-      <Drawer.Backdrop>
-        <Drawer.Content placement="right">
-          <Drawer.Dialog className="w-full max-w-[420px]">
-            <Drawer.CloseTrigger />
-            <Drawer.Header>
-              <Drawer.Heading>One map, four sources</Drawer.Heading>
-            </Drawer.Header>
-            <Drawer.Body className="grid grid-cols-1 gap-5">
+      <Modal.Backdrop variant="blur">
+        <Modal.Container size="lg" scroll="inside">
+          <Modal.Dialog className="glass">
+            <Modal.CloseTrigger />
+            <Modal.Header>
+              <Modal.Heading>One map, four sources</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body className="grid grid-cols-1 gap-5">
               {sources.map((source, i) => (
                 <div key={source.title} className="grid grid-cols-1 gap-1.5">
                   {i > 0 && <Separator variant="secondary" className="mb-3.5" />}
@@ -70,10 +70,10 @@ export default function AboutDrawer() {
                   Data matching report <ArrowUpRight size={14} />
                 </Link>
               </div>
-            </Drawer.Body>
-          </Drawer.Dialog>
-        </Drawer.Content>
-      </Drawer.Backdrop>
-    </Drawer>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal>
   );
 }

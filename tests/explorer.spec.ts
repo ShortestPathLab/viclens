@@ -52,8 +52,11 @@ test("search, school details, filters, layer controls and source notes", async (
   await expect(lga.getByRole("row")).toHaveCount(4);
 
   await page.getByRole("button", { name: "About the data" }).click();
-  await expect(page.getByRole("heading", { name: "One map, four sources" })).toBeVisible();
-  await page.getByRole("button", { name: "Close", exact: true }).click();
+  const about = page.getByRole("dialog", { name: "One map, four sources" });
+  await expect(about.getByRole("heading", { name: "One map, four sources" })).toBeVisible();
+  // The modal makes the page behind it inert, which Playwright's role queries still match, so the
+  // close button is looked up inside the dialog rather than across the page.
+  await about.getByRole("button", { name: "Close", exact: true }).click();
   expect(errors).toEqual([]);
 });
 
@@ -61,7 +64,7 @@ test("mobile explorer is usable without covering the map permanently", async ({ 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.getByRole("button", { name: "Schools", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Schools", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Victorian schools", exact: true })).toBeVisible();
   await page.getByRole("searchbox", { name: "Search schools" }).fill("Balnarring");
   await expect(page.locator(".count")).toHaveText("1 school");
   await page.getByRole("option", { name: /Balnarring Primary School/ }).click();

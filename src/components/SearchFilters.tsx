@@ -9,12 +9,7 @@ import {
 } from "@heroui/react";
 import { options, schoolTypes, typeNames } from "../data";
 import { useSchoolsQuery } from "../queries";
-import {
-  filtersAtom,
-  isFilteredAtom,
-  resetFiltersAtom,
-  updateFiltersAtom,
-} from "../state/atoms";
+import { filtersAtom, isFilteredAtom, resetFiltersAtom, updateFiltersAtom } from "../state/atoms";
 import { cssRgb, typeColorsAtom } from "../state/palette";
 import SelectField from "./SelectField";
 
@@ -80,17 +75,10 @@ export default function SearchFilters() {
         values={["All schools", "With enrolments", "Without enrolments"]}
         onChange={(coverage) => update({ coverage })}
       >
-        <Description>
-          February 2025 counts cover government schools only.
-        </Description>
+        <Description>February 2025 counts cover government schools only.</Description>
       </SelectField>
       {filtered && (
-        <Button
-          size="sm"
-          variant="secondary"
-          className="w-full"
-          onPress={reset}
-        >
+        <Button size="sm" variant="secondary" className="w-full" onPress={reset}>
           Clear filters
         </Button>
       )}

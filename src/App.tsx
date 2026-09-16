@@ -3,6 +3,7 @@ import { useAtomValue } from "jotai";
 import { resolvedThemeAtom } from "./state/theme";
 import ExplorerPanel from "./components/ExplorerPanel";
 import LgaCard from "./components/LgaCard";
+import MapCards from "./components/MapCards";
 import MapLegend from "./components/MapLegend";
 import DetailPanel from "./components/DetailPanel";
 import SkipLink from "./components/SkipLink";
@@ -22,8 +23,10 @@ export default function App() {
       <ExplorerPanel />
       <DetailPanel />
       <MapLegend />
-      <LgaCard />
-      <ZoneAlert />
+      <MapCards>
+        <LgaCard />
+        <ZoneAlert />
+      </MapCards>
     </main>
   );
 }

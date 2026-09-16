@@ -30,6 +30,29 @@
     --zone-fill: #eef1f5;
     --lga-line: #6e578f;
     --lga-fill: #f0edf3;
+
+    /* Glass. These are read on the root, so `--surface` and `--foreground` are HeroUI's own values
+       for the scheme in force, before the glass utility re-points them for what sits inside. */
+    --glass-tint: color-mix(in oklab, var(--surface) 62%, transparent);
+    /* Drawers and modals sit on a dimmed backdrop, which would turn the panel tint grey. They use a
+       thicker tint instead, the way Apple's sheets use a thicker material than floating panes. */
+    --glass-tint-thick: color-mix(in oklab, var(--surface) 88%, transparent);
+    --glass-filter: blur(24px) saturate(180%);
+    --glass-fill: color-mix(in oklab, var(--foreground) 6%, transparent);
+    --glass-fill-hover: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --glass-platter: color-mix(in oklab, var(--surface) 55%, transparent);
+    --glass-line: color-mix(in oklab, var(--foreground) 9%, transparent);
+    /* The lit rim: brightest on the top left edge, where the light is assumed to come from. */
+    --glass-edge: linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.95),
+      rgb(255 255 255 / 0.35) 25%,
+      rgb(255 255 255 / 0) 55%,
+      rgb(255 255 255 / 0.6)
+    );
+    --glass-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.07), 0 2px 6px rgb(0 0 0 / 0.04),
+      0 16px 40px -12px rgb(0 0 0 / 0.18);
   }
   .dark,
   [data-theme="dark"] {
@@ -38,6 +61,23 @@
     --zone-fill: #232a33;
     --lga-line: #9784b5;
     --lga-fill: #26213033;
+
+    /* Dark glass sits a touch lighter than the map, so a panel still reads as a pane in front of it. */
+    --glass-tint: color-mix(in oklab, oklch(0.26 0.006 286) 60%, transparent);
+    --glass-tint-thick: color-mix(in oklab, oklch(0.24 0.006 286) 84%, transparent);
+    --glass-filter: blur(32px) saturate(150%);
+    --glass-fill: color-mix(in oklab, var(--foreground) 9%, transparent);
+    --glass-fill-hover: color-mix(in oklab, var(--foreground) 14%, transparent);
+    --glass-platter: color-mix(in oklab, var(--foreground) 5%, transparent);
+    --glass-line: color-mix(in oklab, var(--foreground) 12%, transparent);
+    --glass-edge: linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.34),
+      rgb(255 255 255 / 0.08) 25%,
+      rgb(255 255 255 / 0.02) 55%,
+      rgb(255 255 255 / 0.16)
+    );
+    --glass-shadow: 0 2px 8px rgb(0 0 0 / 0.25), 0 20px 48px -12px rgb(0 0 0 / 0.55);
   }
   body {
     color: var(--color-foreground);
@@ -65,7 +105,138 @@
   padding-inline-end: calc(var(--panel-inset) - var(--scrollbar-width, 0px));
 }
 
+/* A translucent pane that blurs the map behind it. Any positioned element can take it; the rim is
+   drawn by `::after`, so the element's own `::after` has to be free. */
+@utility glass {
+  background-color: var(--glass-tint);
+  backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-shadow);
+
+  /* HeroUI fills fields, tabs, chips and tracks with opaque greys chosen for a white card. Inside
+     glass those become tints of the foreground, so the map shows through the controls as well. The
+     derived tokens are listed too: HeroUI computes them on the root, where they would keep the
+     opaque values. */
+  --default: var(--glass-fill);
+  --default-hover: var(--glass-fill-hover);
+  --surface: var(--glass-platter);
+  --surface-secondary: var(--glass-fill);
+  --surface-tertiary: var(--glass-fill);
+  --separator: var(--glass-line);
+  --separator-secondary: var(--glass-line);
+  --separator-tertiary: var(--glass-line);
+  --border: var(--glass-line);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--glass-edge);
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* Drawer and modal backdrops fade in, and an element can only blur what lies inside its nearest
+     fading ancestor. Blurring here would catch nothing but the backdrop's tint and then jump when
+     the fade ends, so a glass drawer or modal lets its blurred backdrop do the work. */
+  .drawer__backdrop &,
+  .modal__backdrop & {
+    background-color: var(--glass-tint-thick);
+    backdrop-filter: none;
+  }
+}
+
 @layer components {
+  /* Panel motion, written the way HeroUI writes its overlays: tw-animate-css keyframes keyed to the
+     `data-entering` and `data-exiting` attributes that react-aria's animation hooks set (see
+     Presence). Panels share the drawer's timing and curve. A modifier picks the direction. */
+  .panel-motion {
+    &[data-entering="true"] {
+      @apply animate-in duration-250 ease-out-fluid;
+    }
+    &[data-exiting="true"] {
+      @apply animate-out duration-200 ease-out-fluid;
+      /* Stays non-interactive while closing, even if the exit animation is interrupted. */
+      @apply pointer-events-none;
+    }
+    &[data-entering="true"],
+    &[data-exiting="true"] {
+      @apply will-change-[opacity,transform];
+      @apply motion-reduce:animate-none;
+    }
+  }
+  .panel-motion--left {
+    &[data-entering="true"] {
+      @apply fade-in-0 slide-in-from-left-4;
+    }
+    &[data-exiting="true"] {
+      @apply fade-out slide-out-to-left-4;
+    }
+  }
+  .panel-motion--right {
+    &[data-entering="true"] {
+      @apply fade-in-0 slide-in-from-right-4;
+    }
+    &[data-exiting="true"] {
+      @apply fade-out slide-out-to-right-4;
+    }
+  }
+  .panel-motion--top {
+    &[data-entering="true"] {
+      @apply fade-in-0 slide-in-from-top-3;
+    }
+    &[data-exiting="true"] {
+      @apply fade-out slide-out-to-top-3;
+    }
+  }
+  .panel-motion--bottom {
+    &[data-entering="true"] {
+      @apply fade-in-0 slide-in-from-bottom-3;
+    }
+    &[data-exiting="true"] {
+      @apply fade-out slide-out-to-bottom-3;
+    }
+  }
+  /* The phone sheet travels its full height from the bottom edge, like HeroUI's bottom drawer. */
+  .panel-motion--sheet {
+    &[data-entering="true"] {
+      @apply slide-in-from-bottom;
+    }
+    &[data-exiting="true"] {
+      @apply slide-out-to-bottom;
+    }
+  }
+  /* The map tooltip keeps HeroUI's tooltip timing, which is quicker than a panel's. */
+  .panel-motion--tooltip {
+    &[data-entering="true"] {
+      @apply duration-150 ease-smooth fade-in-0 zoom-in-90;
+    }
+    &[data-exiting="true"] {
+      @apply duration-100 ease-smooth fade-out zoom-out-95;
+    }
+  }
+
+  /* Beside the detail panel the map cards move over by its width. On a screen too narrow to fit
+     them there as well, they stop short of the camera controls and overlap the panel instead. */
+  .map-cards {
+    transition: translate 250ms var(--ease-out-fluid);
+    @apply motion-reduce:transition-none;
+
+    @variant md {
+      &[data-beside-detail="true"] {
+        translate: clamp(
+            0px,
+            100vw - var(--map-inset) - var(--card-w) - var(--controls-clearance),
+            var(--detail-w) + var(--panel-gap)
+          )
+          0;
+      }
+    }
+  }
+
   /* HeroUI owns the switch's track, thumb, focus ring and motion. Only the row layout is ours,
      and it has to reach inside the component, so it stays in CSS rather than as an escaped
      arbitrary variant in the markup. */

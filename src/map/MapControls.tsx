@@ -3,6 +3,7 @@ import { Button, Toolbar } from "@heroui/react";
 import { WebMercatorViewport } from "@deck.gl/core";
 import { Maximize2, Minus, Plus } from "lucide-react";
 import { viewAtom } from "../state/atoms";
+import { useEnterTransition } from "../components/Presence";
 import { flyTo, initialCamera, zoomTo } from "../state/camera";
 
 const victoria: [[number, number], [number, number]] = [
@@ -17,11 +18,13 @@ export default function MapControls({
   padding: { left: number };
 }) {
   const setView = useSetAtom(viewAtom);
+  const transition = useEnterTransition();
   return (
     <Toolbar
+      {...transition}
       orientation="vertical"
       aria-label="Map camera"
-      className="absolute top-4 right-4 gap-1 rounded-xl bg-surface p-1 shadow-overlay"
+      className="glass panel-motion panel-motion--right absolute top-4 right-4 gap-1 rounded-xl p-1"
     >
       <Button
         isIconOnly

@@ -9,6 +9,7 @@ import {
   zoneLevelAtom,
 } from "../state/atoms";
 import { cssRgb, regionColorsAtom, typeColorsAtom } from "../state/palette";
+import { useEnterTransition } from "./Presence";
 
 /** Quiet key for the active encodings. It never takes pointer events away from the map. */
 export default function MapLegend() {
@@ -19,8 +20,12 @@ export default function MapLegend() {
   const zoneLevel = useAtomValue(zoneLevelAtom);
   const typeColors = useAtomValue(typeColorsAtom);
   const regionColors = useAtomValue(regionColorsAtom);
+  const transition = useEnterTransition();
   return (
-    <div className="pointer-events-none absolute right-4 bottom-4 hidden max-w-[240px] rounded-xl bg-surface px-3.5 py-3 shadow-overlay md:block">
+    <div
+      {...transition}
+      className="glass panel-motion panel-motion--bottom pointer-events-none absolute right-4 bottom-4 hidden max-w-[240px] rounded-xl px-3.5 py-3 md:block"
+    >
       <div className="legend-title mb-2 font-medium">
         {colorByRegion ? "Education region" : "School type"}
       </div>

@@ -19,7 +19,7 @@ const prefersReducedMotion = () =>
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 // Duration is derived from the distance travelled, so a jump across the state takes longer than a
 // hop to the next suburb. At this speed those two cases land at roughly 1.6s and 1s.
-const flight = new FlyToInterpolator({ speed: 2.4 });
+const flight = new FlyToInterpolator({ speed: 1.2 });
 const straight = new LinearInterpolator(["zoom"]);
 
 /** Arc out and back in, which keeps the geography in between readable on a long jump. */
@@ -38,7 +38,7 @@ export const zoomTo = (camera: Camera): Camera =>
     ? camera
     : {
         ...camera,
-        transitionDuration: 300,
+        transitionDuration: 600,
         transitionInterpolator: straight,
         transitionEasing: easeInOutCubic,
       };

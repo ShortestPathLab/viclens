@@ -24,17 +24,15 @@ function Fact({ term, value }: { term: string; value: string }) {
 }
 export default function SchoolDetail({ school }: { school: School }) {
   const typeColors = useAtomValue(typeColorsAtom);
-  const section = useRef<HTMLElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-  // Rendered with key={school.id}, so a new selection remounts and moves focus to its heading.
+  // The panel mounts this afresh for each school, so a new selection moves focus to its heading.
   useEffect(() => {
-    section.current?.scrollIntoView({ block: "start" });
     heading.current?.focus({ preventScroll: true });
   }, []);
   const levels = sortedLevels(school.levels);
   const max = Math.max(...levels.map(([, value]) => value), 1);
   return (
-    <section ref={section} aria-label="School details">
+    <section aria-label="School details">
       <Typography ref={heading} tabIndex={-1} type="h4" className="pr-8 text-balance">
         {school.name}
       </Typography>
@@ -51,7 +49,7 @@ export default function SchoolDetail({ school }: { school: School }) {
         </Chip>
       </div>
       <Typography type="body-sm" color="muted" className="mt-3 flex gap-2">
-        <MapPin size={14} className="mt-0.5 shrink-0" />
+        <MapPin size={14} className="mt-1 shrink-0" />
         {school.address}
       </Typography>
       <Separator variant="secondary" className="my-4" />

@@ -68,7 +68,7 @@ components:
 
 **Creative North Star: "A quiet workspace over a loud map"**
 
-The map carries all the colour. Everything else is a pale floating surface holding controls and
+The map carries all the colour. Everything else is a pale pane of glass holding controls and
 numbers, so the only saturated things on screen are the school markers themselves.
 
 **Key characteristics:**
@@ -114,25 +114,64 @@ available to the canvas without waiting for a webfont.
 
 The map fills the viewport at every width. Above 760px the explorer panel floats at the left,
 366px wide with a 16px inset, and the detail panel opens beside it at 326px when a school is
-selected. The map's viewport padding matches whatever the panels cover, so the camera centres what
-the reader can actually see, and the basemap receives the same padding.
+selected. The detail panel is as tall as the school's details, up to the height of the map, and
+each school opens scrolled to the top.
+
+The local government summary and the zone notice stack as cards in the top left of the open map,
+320px wide, just right of whichever panels are showing. When the detail panel opens they move over
+beside it. On a screen too narrow for that, they stop short of the camera controls and overlap the
+detail panel instead.
+
+The map's viewport padding matches whatever the panels and the summary card cover, so the camera
+centres what the reader can actually see, and the basemap receives the same padding. It always
+leaves at least 240px of map open.
 
 Below 760px the explorer becomes a bottom drawer at 85% of the viewport, opened from a floating
 button. The school detail is a separate sheet resting on the bottom third of the map, with no
 backdrop, so the map stays visible and interactive behind it. The camera pads upward by the sheet
 height instead of leftward.
 
-Map chrome keeps the corners: camera controls top right, legend bottom right, local government
-summary below the controls, notices across the top of the visible map.
+Map chrome keeps the corners: camera controls top right and the legend bottom right. On a phone
+the cards stack across the top of the map, clear of the camera controls.
 
 ## Elevation and depth
 
-One shadow, from HeroUI's overlay token, on every floating surface. No borders under it, and no
-blur. Depth comes from the panel sitting on the map, not from stacked effects.
+Floating panels are glass. Each one is a translucent tint of HeroUI's surface colour over a blur of
+the map, with a one-pixel rim lit from the top left and a soft shadow underneath. Inside a panel,
+HeroUI's grey fills for fields, tabs, chips and meter tracks turn into faint tints of the
+foreground, so the map shows through the controls as well. Dark glass is a touch lighter than the
+dark map, which keeps the panels reading as panes in front of it.
+
+The phone explorer drawer and the "About the data" modal sit on HeroUI's blurred backdrop and use
+a thicker tint. Thin glass over a dimmed backdrop comes out grey. The modal keeps HeroUI's own
+shape and entrance.
+
+## Motion
+
+Panels arrive and leave the way HeroUI's own overlays do. react-aria's animation hooks set
+`data-entering` and `data-exiting` on a panel, and tw-animate-css keyframes run against those
+attributes with the timing and curve of HeroUI's drawer: 250ms in, 200ms out. Each panel fades
+and slides in from the side it is anchored to. The explorer, the detail panel, the local
+government summary and the zone notice all come from the left, the map controls from the right
+and the legend from below. The phone sheet rises from the bottom edge, and the map tooltip keeps
+HeroUI's quicker tooltip timing. A closing panel keeps showing what it held until it has gone, and
+it can no longer be clicked or focused.
+
+Everything else that moves uses Motion on the same curve and timing:
+
+- Picking another school or area while its panel is open crossfades the old contents into the
+  new, and the panel eases to the new height. Starting each change from blank made the contents
+  blink when items were clicked through quickly.
+- The cards slide sideways as the detail panel opens and closes.
+- The map's viewport padding eases to its new value, so the map glides over with the panels
+  rather than jumping.
+
+When the browser asks for reduced motion, all of it happens at once without animating.
 
 ## Shapes
 
-Panels use a 16px radius and the mobile sheet rounds only its top corners. Controls, fields and
+Panels and map cards use a 16px radius and a 20px inset, and the mobile sheet rounds only its top
+corners. Controls, fields and
 list rows take HeroUI's own radii. Markers and legend dots are circles; zone and boundary swatches
 are outlined rectangles, which keeps them readable as areas rather than points.
 
@@ -160,7 +199,15 @@ with the fields above it.
 A `Typography` heading, `Chip` tags for type and sector, a definition list, and one `Meter` per
 year level with the track at full width. Missing enrolments are an `Alert`, never a zero. Closing
 is a `CloseButton` at the top right, which is the same control used for the boundary summary, the
-zone notice and both drawers.
+zone notice, the phone drawer and the About modal.
+
+### Local government summary
+
+A `Card` shaped like the panels, with a `Typography` heading, a description and a secondary
+`Table` of sector totals. The glass supplies the surface, so the table has no tinted header or
+white body: rules separate the rows, numbers align right under right-aligned headings, and the
+outer columns line up with the card's edges. The close button sits outside the changing contents,
+so it stays still while areas crossfade.
 
 ### Map
 

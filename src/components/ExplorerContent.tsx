@@ -1,7 +1,7 @@
 import { useAtom } from "jotai";
 import { Tabs, Typography } from "@heroui/react";
 import { panelTabAtom } from "../state/atoms";
-import AboutDrawer from "./AboutDrawer";
+import AboutModal from "./AboutModal";
 import LayerControls from "./LayerControls";
 import ResultsList from "./ResultsList";
 import SearchFilters from "./SearchFilters";
@@ -50,7 +50,7 @@ export default function ExplorerContent() {
         </Typography>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <AboutDrawer />
+          <AboutModal />
         </div>
       </footer>
     </>

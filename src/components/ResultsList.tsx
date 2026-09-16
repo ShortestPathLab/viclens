@@ -14,12 +14,7 @@ import { SearchX } from "lucide-react";
 import { useMemo } from "react";
 import { formatNumber, typeNames } from "../data";
 import { useSchoolsQuery } from "../queries";
-import {
-  PAGE_SIZE,
-  resultLimitAtom,
-  selectSchoolAtom,
-  selectedSchoolAtom,
-} from "../state/atoms";
+import { PAGE_SIZE, resultLimitAtom, selectSchoolAtom, selectedSchoolAtom } from "../state/atoms";
 import { useVisibleSchools } from "../state/hooks";
 import { cssRgb, typeColorsAtom } from "../state/palette";
 
@@ -31,12 +26,7 @@ export default function ResultsList() {
   const [limit, setLimit] = useAtom(resultLimitAtom);
   const selectSchool = useSetAtom(selectSchoolAtom);
   const ranked = useMemo(
-    () =>
-      orderBy(
-        visible,
-        [(s) => s.enrolment ?? -1, (s) => s.name],
-        ["desc", "asc"],
-      ),
+    () => orderBy(visible, [(s) => s.enrolment ?? -1, (s) => s.name], ["desc", "asc"]),
     [visible],
   );
   return (
@@ -52,9 +42,7 @@ export default function ResultsList() {
         <Alert status="danger">
           <Alert.Content>
             <Alert.Title>Schools did not load</Alert.Title>
-            <Alert.Description>
-              The school data file could not be fetched.
-            </Alert.Description>
+            <Alert.Description>The school data file could not be fetched.</Alert.Description>
           </Alert.Content>
           <Button size="sm" variant="ghost" onPress={() => schools.refetch()}>
             Try again

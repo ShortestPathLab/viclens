@@ -7,13 +7,17 @@ export type ThemePreference = "system" | "light" | "dark";
 export const themeAtom = atomWithStorage<ThemePreference>("theme", "system", undefined, {
   getOnInit: true,
 });
-const systemDark = atom(false);
+const darkQuery =
+  typeof window === "undefined" ? null : window.matchMedia("(prefers-color-scheme: dark)");
+// The atom starts from the device's current answer rather than learning it on mount. Components
+// subscribe one by one after they have rendered, and a value that changed when the first of them
+// mounted this atom would never reach the ones that subscribed after it.
+const systemDark = atom(darkQuery?.matches ?? false);
 systemDark.onMount = (set) => {
-  const mql = window.matchMedia("(prefers-color-scheme: dark)");
-  const read = () => set(mql.matches);
-  read();
-  mql.addEventListener("change", read);
-  return () => mql.removeEventListener("change", read);
+  if (!darkQuery) return;
+  const read = () => set(darkQuery.matches);
+  darkQuery.addEventListener("change", read);
+  return () => darkQuery.removeEventListener("change", read);
 };
 /** The scheme actually in force, once "system" is resolved against the device. */
 export const resolvedThemeAtom = atom<"light" | "dark">((get) => {
