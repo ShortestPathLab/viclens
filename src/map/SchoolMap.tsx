@@ -13,18 +13,18 @@ import { withoutTransition } from "../state/camera";
 import { resolvedThemeAtom } from "../state/theme";
 import type { Camera } from "../state/camera";
 import { mapboxToken } from "./basemap";
-import type { Hover } from "./basemap";
 import MapControls from "./MapControls";
 import MapTooltip from "./MapTooltip";
 import { useEasedPadding } from "./useEasedPadding";
 import { useElementSize } from "./useElementSize";
 import { useMapLayers } from "./useMapLayers";
+import { useRestingHover } from "./useRestingHover";
 
 export default function SchoolMap() {
   const [container, size] = useElementSize<HTMLElement>();
   const [view, setView] = useAtom(viewAtom);
   const [error, setError] = useState("");
-  const [hover, setHover] = useState<Hover | null>(null);
+  const [hover, setHover] = useRestingHover(container);
   const layers = useMapLayers(setHover);
   const isDesktop = useIsDesktop();
   const theme = useAtomValue(resolvedThemeAtom);
