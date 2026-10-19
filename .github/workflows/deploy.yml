@@ -36,17 +36,19 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Restore the school zones
-        # The education department's file host no longer serves the zone ZIPs, so they are kept
-        # on the data-inputs release. The fetch uses files placed in data/sources as they are.
+      - name: Restore the files publishers no longer serve
+        # The education department's file host drops every connection, and the Internet Archive
+        # refuses GitHub's runners after a few requests, so the zone ZIPs and the enrolment years
+        # only that host listed are kept on the data-inputs release. An asset named
+        # <source>-<file> goes to data/sources/<source>/<file>, and the fetch uses it as it is.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p data/sources/school-zones
-          gh release download data-inputs --pattern 'school-zones-*.zip' --dir "$RUNNER_TEMP/zones"
-          for zip in "$RUNNER_TEMP"/zones/school-zones-*.zip; do
-            name=$(basename "$zip")
-            mv "$zip" "data/sources/school-zones/${name#school-zones-}"
+          gh release download data-inputs --dir "$RUNNER_TEMP/inputs"
+          for asset in "$RUNNER_TEMP"/inputs/*; do
+            name=$(basename "$asset")
+            mkdir -p "data/sources/${name%-*}"
+            mv "$asset" "data/sources/${name%-*}/${name##*-}"
           done
       - name: Fetch the data
         # Strict, so a source that fails stops the deploy instead of publishing a map without it.

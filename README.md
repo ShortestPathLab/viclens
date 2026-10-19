@@ -38,9 +38,11 @@ without it.
 - ACARA's School Profile is left out of the published site. The My School terms of use do not
   allow it on a public website without ACARA's written permission. Once that permission is
   granted, set the repository variable `PUBLISH_ACARA` to `true` and run the workflow again.
-- The education department no longer serves the school zone ZIPs, so the workflow downloads them
-  from the `data-inputs` release, where each is attached as `school-zones-<year>.zip`. To add a
-  zone year, attach its ZIP there.
+- The education department no longer serves the school zone ZIPs or some years of enrolments,
+  and the Internet Archive refuses GitHub's runners after a few requests. The workflow downloads
+  these files from the `data-inputs` release instead. An asset named `<source>-<file>`, such as
+  `school-zones-2027.zip` or `enrolments-2018.csv`, is placed at `data/sources/<source>/<file>`
+  and used as a hand-placed file. To add a zone year, attach its ZIP there.
 - The build job runs in the `dev` environment and reads the Mapbox token from its
   `VITE_MAPBOX_ACCESS_TOKEN` variable.
 

@@ -55,6 +55,7 @@ A hand-placed file has to pass the same format check as a download, otherwise it
 
 - The 2027 school zones ZIP. DataVic lists it, but its only download link is on `www.education.vic.gov.au`, which drops every connection, and the Internet Archive has no copy. Save `dv419_DataVic_School_Zones_2027_MAR26.zip` from [School Zones 2027](https://discover.data.vic.gov.au/dataset/victorian-government-school-zones-2027) as `data/sources/school-zones/2027.zip` when you can get it.
 - The 2026 zones ZIP in `data/sources/school-zones/2026.zip` is a manual drop-in, copied from the file supplied with this project in September 2026.
+- The published site takes the 2026 zones ZIP and the enrolment years 2015 to 2020 and 2023 to 2025 from the repository's `data-inputs` release. Those years are listed only on `www.education.vic.gov.au`, and the Internet Archive refuses GitHub's runners after a few requests. A local run still fetches them from the Internet Archive.
 
 ## Sources
 
