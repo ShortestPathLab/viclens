@@ -61,10 +61,25 @@ def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def get(url, data=None, headers=None, timeout=90, opener=None, method=None):
-    """Return (body, headers, final url). Retries twice on network errors, 429 and 5xx."""
+# Places that failed at the network level earlier in this run, keyed by host and first path segment
+# so a stalled download area does not also block an API on the same host. Their other files go
+# straight to the next route instead of each sitting through the same timeouts and retries.
+unreachable = {}
+
+
+def get(url, data=None, headers=None, timeout=60, opener=None, method=None):
+    """Return (body, headers, final url). Retries twice on network errors, 429 and 5xx.
+
+    The timeout applies to each wait on the socket, not to the whole download, so a large file is
+    not cut short. It decides how long a host that accepts the connection and then never answers
+    can hold up the run.
+    """
     request = urllib.request.Request(url, data=data, headers={'User-Agent': UA, **(headers or {})}, method=method)
-    host = urllib.parse.urlsplit(url).netloc
+    parts = urllib.parse.urlsplit(url)
+    host = parts.netloc
+    place = f'{host}/{parts.path.lstrip("/").split("/")[0]}'
+    if place in unreachable:
+        raise FetchError(unreachable[place])
     for attempt in range(3):
         try:
             with (opener.open if opener else urllib.request.urlopen)(request, timeout=timeout) as response:
@@ -75,7 +90,8 @@ def get(url, data=None, headers=None, timeout=90, opener=None, method=None):
         except (OSError, http.client.HTTPException) as error:
             if attempt == 2:
                 reason = getattr(error, 'reason', None) or error
-                raise FetchError(f'{host}: {str(reason) or type(error).__name__}'[:160]) from None
+                unreachable[place] = f'{host}: {str(reason) or type(error).__name__}'[:160]
+                raise FetchError(unreachable[place]) from None
         time.sleep(1 + attempt * 2)
 
 
@@ -85,7 +101,7 @@ def get_json(url, **params):
 
 # Downloads are tried in order until one passes its check.
 
-def direct(url, timeout=180):
+def direct(url, timeout=60):
     def attempt():
         body, _, final = get(url, timeout=timeout)
         return body, final, None
@@ -103,7 +119,7 @@ def archived(url):
         stamp, original = rows[-1][1], rows[-1][2]
         time.sleep(1)
         capture = f'https://web.archive.org/web/{stamp}id_/{original}'
-        body = get(capture, timeout=180)[0]
+        body = get(capture)[0]
         return body, capture, f'publisher host unreachable; Internet Archive capture of {stamp[:4]}-{stamp[4:6]}-{stamp[6:8]}'
     return attempt
 
@@ -236,6 +252,7 @@ class Run:
                     return kept
                 if age(old['fetchedAt']) < max_age:
                     return {**old, **base, 'status': 'cached', 'note': f'no change check available; reusing the copy fetched {old["fetchedAt"][:10]}'}
+        print(f'  {rel}', flush=True)
         errors = []
         for attempt in attempts:
             try:
