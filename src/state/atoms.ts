@@ -1,7 +1,7 @@
 import { atom } from "jotai";
 import { isEqual } from "es-toolkit";
 import { defaultFilters } from "../data";
-import type { Filters, LgaProperties, School } from "../data";
+import type { Filters, School } from "../data";
 import { flyTo, initialCamera } from "./camera";
 import type { Camera } from "./camera";
 
@@ -9,14 +9,7 @@ export const PAGE_SIZE = 30;
 export const filtersAtom = atom<Filters>(defaultFilters);
 export const isFilteredAtom = atom((get) => !isEqual(get(filtersAtom), defaultFilters));
 export const selectedSchoolAtom = atom<School | null>(null);
-export const selectedLgaAtom = atom<LgaProperties | null>(null);
 export const resultLimitAtom = atom(PAGE_SIZE);
-export const showSchoolsAtom = atom(true);
-export const showZonesAtom = atom(true);
-export const showLgasAtom = atom(false);
-export const sizeByEnrolmentAtom = atom(false);
-export const colorByRegionAtom = atom(false);
-export const zoneLevelAtom = atom("P6");
 export const viewAtom = atom<Camera>(initialCamera);
 export const noticeAtom = atom("");
 export const mobileOpenAtom = atom(false);

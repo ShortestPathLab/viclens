@@ -8,24 +8,41 @@ web
 
 ## Users
 
-The project owner, exploring Victorian school locations, regions, zones and enrolments.
+The project owner, analysing Victorian schools. The site is published on GitHub Pages.
 
 ## Product Purpose
 
-An interactive map with overlays and left-hand controls for discovering schools and understanding enrolment data.
+A configurable map for analysing Victorian schools in their setting. Any number of layers can be
+stacked, each drawing one dataset (schools, enrolment zones, council areas, SA2 statistical areas
+or public transport stops) in a chosen way: points by category, graduated colour, proportional
+circles, heatmaps, hexagon bins, boundaries or choropleths. The left panel holds search, filters
+and the layer list; detail panels describe a school or an area.
 
 ## Capabilities and Constraints
 
-React, TypeScript, Vite with Oxc, Oxlint, HeroUI, deck.gl and Mapbox. Use es-toolkit for data operations. Mapbox token will be provided later. Preserve the supplied archives. Distinguish 2026 zones from February 2025 enrolments. Never present a zone centroid as a school location or aggregate statistics as school-level enrolment.
+React, TypeScript, Vite with Oxc, Oxlint, HeroUI, deck.gl, Mapbox and dnd-kit. Use es-toolkit for
+data operations. Data is never committed: `npm run data` fetches every source and builds the JSON
+the site reads. Keep enrolment census years, zone years, ACARA profile years and ABS reference
+years labelled wherever they appear. Never present a zone centroid as a school location or an area
+statistic as a school figure.
+
+ACARA's School Profile is used under the My School terms of use. Until ACARA gives written
+permission, it appears only in local builds and the published site leaves it out. Wherever its
+figures appear they are credited to ACARA, and the map offers no way to rank schools by results.
 
 ## Evidence on Hand
 
-The supplied DataVic 2026 school-zone ZIP and schoolsandenrolments.xlsx with four hidden raw sheets. The user-supplied DataVic School Locations 2025 CSV supplements the polygon data with actual school coordinates, sectors and types.
+DataVic school locations, all-sector FTE enrolments from 2007 and school zones; the education
+department's bushfire and grassfire risk registers; Vicmap council boundaries; ACARA's School
+Profile joined through the Australian Schools List; ABS SEIFA 2021, estimated resident population
+and Census 2021 school attendance by SA2 and council area; Department of Transport and Planning
+stop locations; Natural Earth for the offline coastline. `data/SOURCES.md` records each source and
+`public/data/report.json` records what each build used.
 
 ## Open decisions and assumptions
 
-The user requested autonomous completion. Use the specified full-map layout with a left control panel. Assume a desktop-first analysis workflow with mobile support. Administrative regions are school attributes; the supplied polygons are enrolment zones, not administrative region boundaries. No individual school history is inferred from aggregate historical data.
-
-## Local government areas
-
-User requested an independently toggleable LGA layer. Order_HF638P.zip contains a reference table but no polygon geometry. A documented official Vicmap snapshot supplies boundaries; all 79 councils match the workbook’s LGA enrolment totals. Unincorporated areas have no invented totals.
+Desktop-first analysis with mobile support. Education regions are school attributes, not
+boundaries. Area totals built from schools follow the school filters on the map, while the area
+card always counts every school in the area. No individual school history is inferred from
+aggregate data. Joins use the school number and sector wherever a source carries them; the fire
+risk registers name facilities only, so they join on name and town.

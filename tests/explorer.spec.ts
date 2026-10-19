@@ -1,20 +1,39 @@
 import { test, expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+// The data is built locally by `npm run data`; the tests read its counts rather than fixing them.
+const report = JSON.parse(readFileSync("public/data/report.json", "utf8"));
+const total = new Intl.NumberFormat("en-AU").format(report.matching.schools);
 
 // Selects are listbox comboboxes, not native selects: open the trigger, then pick the option.
-async function choose(page: Page, field: string, option: string) {
+async function choose(page: Page, field: string, option: string | RegExp) {
   await page.getByLabel(field, { exact: true }).click();
-  await page.getByRole("option", { name: option, exact: true }).click();
+  // A plain name matches exactly, so "Catholic" picks the sector, not a school with it in its name.
+  await page
+    .getByRole(
+      "option",
+      typeof option === "string" ? { name: option, exact: true } : { name: option },
+    )
+    .first()
+    .click();
 }
 const openLayers = (page: Page) => page.getByRole("tab", { name: "Map layers" }).click();
-// The switch role sits on a visually hidden input, so drive the switches by their visible label.
-const toggle = (page: Page, label: string) => page.getByText(label, { exact: true }).click();
+// Each test gets a fresh browser context, so the saved layers start from the defaults.
+const layerRows = (page: Page) =>
+  page.getByRole("list", { name: "Map layers" }).getByRole("listitem");
+// An open layer's text includes its dataset picker, which names every dataset, so a row is
+// identified by its grip, whose name is the layer's own.
+const grip = (page: Page, index: number) =>
+  layerRows(page)
+    .nth(index)
+    .getByRole("button", { name: /^Move .* layer$/ });
 
-test("search, school details, filters, layer controls and source notes", async ({ page }) => {
+test("search, school details and filters", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await expect(page.locator(".count")).toHaveText("2,301 schools");
+  await expect(page.locator(".count")).toHaveText(`${total} schools`);
   await expect(page.locator("canvas").first()).toBeVisible();
 
   const search = page.getByRole("searchbox", { name: "Search schools" });
@@ -30,33 +49,76 @@ test("search, school details, filters, layer controls and source notes", async (
   await page.getByRole("button", { name: "Clear filters" }).first().click();
   await choose(page, "Sector", "Catholic");
   // Filtering is deferred, so wait for the narrowed list before picking from it.
-  await expect(page.locator(".count")).not.toHaveText("2,301 schools");
+  await expect(page.locator(".count")).not.toHaveText(`${total} schools`);
   await page.locator(".school-row").first().click();
-  await expect(page.getByText("No school-level enrolments")).toBeVisible();
+  await expect(page.getByText(/FTE students, February/)).toBeVisible();
   await page.getByRole("button", { name: "Close school details" }).click();
   await page.getByRole("button", { name: "Clear filters" }).first().click();
 
-  await openLayers(page);
-  await toggle(page, "Show 2026 zones");
-  await expect(page.getByLabel("Year level", { exact: true })).toHaveCount(0);
-  await toggle(page, "Show 2026 zones");
-  await choose(page, "Year level", "Year 12");
-  await expect(page.getByText("Loading boundaries")).toHaveCount(0);
-  await toggle(page, "Colour by region");
-  await expect(page.locator(".legend-title")).toHaveText("Education region");
-
-  await toggle(page, "Show boundaries");
-  await choose(page, "Inspect an LGA", "Melbourne");
-  const lga = page.getByRole("region", { name: "Local government area details" });
-  await expect(lga).toBeVisible();
-  await expect(lga.getByRole("row")).toHaveCount(4);
-
   await page.getByRole("button", { name: "About the data" }).click();
-  const about = page.getByRole("dialog", { name: "One map, four sources" });
-  await expect(about.getByRole("heading", { name: "One map, four sources" })).toBeVisible();
+  const about = page.getByRole("dialog", { name: "About the data" });
+  await expect(
+    about.getByRole("heading", { name: "School locations", exact: false }).first(),
+  ).toBeVisible();
   // The modal makes the page behind it inert, which Playwright's role queries still match, so the
   // close button is looked up inside the dialog rather than across the page.
   await about.getByRole("button", { name: "Close", exact: true }).click();
+  expect(errors).toEqual([]);
+});
+
+test("layers can be configured, added, hidden and reordered", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await openLayers(page);
+  await expect(layerRows(page)).toHaveCount(2);
+  await expect(grip(page, 0)).toHaveAccessibleName("Move Schools layer");
+
+  // Shade schools by enrolment change instead of colouring them by type.
+  await page.getByRole("button", { name: /^Schools Coloured by school type/ }).click();
+  await choose(page, "Displayed as", /^Graduated colour/);
+  await choose(page, "Shade by", /^Enrolments, February/);
+  await expect(page.getByRole("button", { name: /^Schools Shaded by enrolments/ })).toBeVisible();
+  await expect(page.locator(".legend-title").first()).toHaveText("Schools");
+
+  // Add council areas, then open one through the accessible picker.
+  await page.getByRole("button", { name: "Add layer" }).click();
+  await page.getByRole("menuitem", { name: /^Local government areas/ }).click();
+  await expect(layerRows(page)).toHaveCount(3);
+  // Areas land under the points above them.
+  await expect(grip(page, 1)).toHaveAccessibleName("Move Local government areas layer");
+  await choose(page, "Inspect an area", "Melbourne");
+  const area = page.getByRole("region", { name: "Area details" });
+  await expect(area).toBeVisible();
+  await expect(area.getByRole("row").first()).toBeVisible();
+
+  // Hiding the layer closes its card; the eye is a toggle button.
+  const eye = page.getByRole("button", { name: "Show Local government areas layer" });
+  await expect(eye).toHaveAttribute("aria-pressed", "true");
+  await eye.click();
+  await expect(eye).toHaveAttribute("aria-pressed", "false");
+  await expect(area).toHaveCount(0);
+
+  // Keyboard reorder: pick up the zones layer, move it to the top and drop it. Each key waits for
+  // the list's spoken announcement, so a press never lands before the previous move is measured.
+  // dnd-kit measures on animation frames, which the software renderer here produces slowly.
+  const live = (text: RegExp) => expect(page.getByText(text)).toBeAttached({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Move Enrolment zones layer" }).focus();
+  await page.keyboard.press("Space");
+  await live(/^Picked up Enrolment zones/);
+  await page.keyboard.press("ArrowUp");
+  await live(/moved to position 2 of 3/);
+  await page.keyboard.press("ArrowUp");
+  await live(/moved to position 1 of 3/);
+  await page.keyboard.press("Space");
+  await live(/dropped at position 1 of 3/);
+  await expect(grip(page, 0)).toHaveAccessibleName("Move Enrolment zones layer");
+
+  // The arrangement survives a reload.
+  await page.reload();
+  await openLayers(page);
+  await expect(layerRows(page)).toHaveCount(3);
+  await expect(grip(page, 0)).toHaveAccessibleName("Move Enrolment zones layer");
   expect(errors).toEqual([]);
 });
 
@@ -87,7 +149,7 @@ test("failed school data can be retried", async ({ page }) => {
   await expect(page.getByText("Schools did not load")).toBeVisible();
   await page.unroute("**/data/schools.json");
   await page.getByRole("button", { name: "Try again" }).click();
-  await expect(page.locator(".count")).toHaveText("2,301 schools");
+  await expect(page.locator(".count")).toHaveText(`${total} schools`);
 });
 
 test("keyboard navigation reaches mobile results and restores school focus", async ({ page }) => {

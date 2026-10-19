@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import DeckGL from "@deck.gl/react";
 import { MapView } from "@deck.gl/core";
 import Map from "react-map-gl/mapbox";
@@ -8,7 +8,10 @@ import { MapPin } from "lucide-react";
 import Presence, { useEnterTransition } from "../components/Presence";
 import { useIsDesktop } from "../components/useMediaQuery";
 import { LAYOUT, coveredLeft } from "../layout";
-import { selectedLgaAtom, selectedSchoolAtom, showLgasAtom, viewAtom } from "../state/atoms";
+import { describePick } from "../layers/deckLayers";
+import { openAreaAtom, selectedAreaAtom } from "../layers/state";
+import { noticeAtom, selectSchoolAtom, selectedSchoolAtom, viewAtom } from "../state/atoms";
+import { useSelectZone } from "../state/hooks";
 import { withoutTransition } from "../state/camera";
 import { resolvedThemeAtom } from "../state/theme";
 import type { Camera } from "../state/camera";
@@ -23,9 +26,16 @@ import { useRestingHover } from "./useRestingHover";
 export default function SchoolMap() {
   const [container, size] = useElementSize<HTMLElement>();
   const [view, setView] = useAtom(viewAtom);
-  const [error, setError] = useState("");
+  const [failure, setFailure] = useState<{ message: string; layers: unknown } | null>(null);
   const [hover, setHover] = useRestingHover(container);
-  const layers = useMapLayers(setHover);
+  const { layers, views: layerViews } = useMapLayers();
+  // An error belongs to the layers that raised it, so changing them clears it.
+  const error = failure?.layers === layers ? failure.message : "";
+  const setError = (message: string) => setFailure({ message, layers });
+  const selectSchool = useSetAtom(selectSchoolAtom);
+  const selectZone = useSelectZone();
+  const setSelectedArea = useSetAtom(selectedAreaAtom);
+  const setNotice = useSetAtom(noticeAtom);
   const isDesktop = useIsDesktop();
   const theme = useAtomValue(resolvedThemeAtom);
   const noteTransition = useEnterTransition();
@@ -34,15 +44,13 @@ export default function SchoolMap() {
   // and up on a phone where the detail rests along the bottom edge. deck.gl hands the same padding
   // to the basemap, which keeps the two cameras aligned.
   const hasDetail = useAtomValue(selectedSchoolAtom) !== null;
-  const showLgas = useAtomValue(showLgasAtom);
-  const selectedLga = useAtomValue(selectedLgaAtom);
-  const hasLgaCard = showLgas && selectedLga !== null;
+  const hasAreaCard = useAtomValue(openAreaAtom) !== null;
   const padding = useMemo(
     () => ({
-      left: isDesktop ? coveredLeft(size.width, hasDetail, hasLgaCard) : 0,
+      left: isDesktop ? coveredLeft(size.width, hasDetail, hasAreaCard) : 0,
       bottom: !isDesktop && hasDetail ? Math.round(size.height * LAYOUT.sheetHeight) : 0,
     }),
-    [isDesktop, hasDetail, hasLgaCard, size.width, size.height],
+    [isDesktop, hasDetail, hasAreaCard, size.width, size.height],
   );
   const easedPadding = useEasedPadding(padding);
   const views = useMemo(
@@ -64,6 +72,18 @@ export default function SchoolMap() {
         }}
         controller={{ dragRotate: false, touchRotate: false }}
         layers={layers}
+        // Picking runs once for the whole map, so only the topmost feature under the pointer
+        // answers, whichever layer it belongs to.
+        onHover={(info) => setHover(describePick(info, layerViews).hover)}
+        onClick={(info) => {
+          const action = describePick(info, layerViews).action;
+          if (action?.kind === "school") selectSchool(action.school);
+          if (action?.kind === "zone") selectZone(action.zone.properties);
+          if (action?.kind === "area") {
+            setSelectedArea(action.area);
+            setNotice("");
+          }
+        }}
         onError={(e) => setError(e.message)}
         getCursor={({ isHovering, isDragging }) =>
           isDragging ? "grabbing" : isHovering ? "pointer" : "grab"

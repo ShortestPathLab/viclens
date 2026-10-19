@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Publishers release new editions on their own schedules, so a weekly build picks them up.
+  schedule:
+    - cron: "0 18 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -16,11 +19,16 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # The dev environment holds VITE_MAPBOX_ACCESS_TOKEN, which Vite writes into the bundle.
     environment: dev
     permissions:
       contents: read
       pages: read
+    env:
+      # ACARA's School Profile may appear on a public site only with ACARA's written permission.
+      # Until the PUBLISH_ACARA variable is set to true, the build leaves its sources out.
+      LEAVE_OUT: ${{ vars.PUBLISH_ACARA != 'true' && 'acara-profile acara-asl' || '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -28,6 +36,25 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Restore the school zones
+        # The education department's file host no longer serves the zone ZIPs, so they are kept
+        # on the data-inputs release. The fetch uses files placed in data/sources as they are.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p data/sources/school-zones
+          gh release download data-inputs --pattern 'school-zones-*.zip' --dir "$RUNNER_TEMP/zones"
+          for zip in "$RUNNER_TEMP"/zones/school-zones-*.zip; do
+            name=$(basename "$zip")
+            mv "$zip" "data/sources/school-zones/${name#school-zones-}"
+          done
+      - name: Fetch the data
+        # Strict, so a source that fails stops the deploy instead of publishing a map without it.
+        run: python3 scripts/fetch_data.py --strict ${LEAVE_OUT:+--skip $LEAVE_OUT}
+      - name: Build the data
+        run: python3 scripts/prepare_data.py ${LEAVE_OUT:+--exclude $LEAVE_OUT}
+      - name: Check the data
+        run: npm test
       - id: pages
         uses: actions/configure-pages@v6
       - name: Build

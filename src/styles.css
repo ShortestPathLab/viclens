@@ -237,11 +237,39 @@
     }
   }
 
-  /* HeroUI owns the switch's track, thumb, focus ring and motion. Only the row layout is ours,
-     and it has to reach inside the component, so it stays in CSS rather than as an escaped
-     arbitrary variant in the markup. */
-  .layer-toggle .switch__content {
-    width: 100%;
-    justify-content: space-between;
+  /* Layer rows take the field tint on hover and while open. While one is dragged, its place in
+     the list stays as a faint slot and a lifted copy follows the pointer. */
+  .layer-card {
+    @apply transition-colors duration-200 ease-out motion-reduce:transition-none;
+    &:hover,
+    &[data-expanded="true"] {
+      background-color: var(--default);
+    }
+    &[data-dragging="true"] {
+      opacity: 0.35;
+    }
+    &[data-overlay="true"] {
+      background-color: var(--surface);
+      box-shadow: var(--glass-shadow);
+      cursor: grabbing;
+    }
+  }
+  .layer-grip {
+    cursor: grab;
+    /* The grip handles its own touch drags instead of scrolling the panel. */
+    touch-action: none;
+    @apply transition-colors duration-150;
+    &:hover {
+      color: var(--foreground);
+    }
+    &:focus-visible {
+      @apply status-focused;
+    }
+  }
+  .layer-trigger {
+    cursor: var(--cursor-interactive);
+    &[data-focus-visible="true"] {
+      @apply status-focused;
+    }
   }
 }

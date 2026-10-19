@@ -1,30 +1,18 @@
-import { Button, Link, Modal, Separator, Typography } from "@heroui/react";
+import { Button, Chip, Link, Modal, Separator, Skeleton, Typography } from "@heroui/react";
 import { ArrowUpRight, Info } from "lucide-react";
+import { useReportQuery } from "../queries";
 
-const sources = [
-  {
-    title: "Locations",
-    period: "2025",
-    body: "All 2,301 schools in the DataVic CSV, across government, Catholic and independent sectors. Each marker is the supplied school location, not every campus.",
-  },
-  {
-    title: "Enrolments",
-    period: "February 2025",
-    body: "School-level full-time equivalent counts from the hidden School Name raw Data sheet. All 1,575 school names matched. Rows across LGAs are summed at school level and counts can be fractional. Other sectors have no school-level enrolments in this workbook.",
-  },
-  {
-    title: "Zones",
-    period: "2026",
-    body: "3,127 boundaries across primary, secondary year levels and standalone zones. 35 zone names have no exact 2025 location match; they stay visible with all filters cleared. Zones are not education regions, which are a school attribute shown by marker colour.",
-  },
-  {
-    title: "Local government areas",
-    period: "September 2026",
-    body: "Vicmap Admin boundaries, simplified for display. Totals come from the hidden LGA Raw Data sheet for February 2025, cover all sectors and ignore the school filters.",
-  },
-];
+const statusLabel = { cached: "Kept from an earlier fetch", missing: "Not available" } as const;
+const fetched = (iso: string | null) =>
+  iso
+    ? new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "long", year: "numeric" }).format(
+        new Date(iso),
+      )
+    : null;
+
 // The button is the modal's own trigger, so react-aria owns the open state and focus return.
 export default function AboutModal() {
+  const { data: report, isLoading } = useReportQuery();
   return (
     <Modal>
       <Button variant="ghost" size="sm">
@@ -35,28 +23,61 @@ export default function AboutModal() {
           <Modal.Dialog className="glass">
             <Modal.CloseTrigger />
             <Modal.Header>
-              <Modal.Heading>One map, four sources</Modal.Heading>
+              <Modal.Heading>About the data</Modal.Heading>
             </Modal.Header>
             <Modal.Body className="grid grid-cols-1 gap-5">
-              {sources.map((source, i) => (
-                <div key={source.title} className="grid grid-cols-1 gap-1.5">
+              <Typography type="body-sm" color="muted">
+                Every layer is built from the public sources below by the data fetch, which records
+                where each file came from and when.
+              </Typography>
+              {isLoading && <Skeleton className="h-24 w-full rounded-lg" />}
+              {report?.sources.map((source, i) => (
+                <div key={source.id} className="grid grid-cols-1 gap-1.5">
                   {i > 0 && <Separator variant="secondary" className="mb-3.5" />}
                   <div className="flex items-baseline justify-between gap-3">
                     <Typography type="h6">{source.title}</Typography>
-                    <Typography type="body-xs" color="muted">
-                      {source.period}
-                    </Typography>
+                    {source.period && (
+                      <Typography type="body-xs" color="muted" className="shrink-0">
+                        {source.period}
+                      </Typography>
+                    )}
                   </div>
                   <Typography type="body-sm" color="muted">
-                    {source.body}
+                    {source.publisher} · {source.licence}
+                    {source.fetchedAt && source.status !== "missing"
+                      ? ` · Fetched ${fetched(source.fetchedAt)}`
+                      : ""}
                   </Typography>
+                  {source.status !== "fresh" && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Chip size="sm" variant="secondary">
+                        {statusLabel[source.status]}
+                      </Chip>
+                      {source.note && (
+                        <Typography type="body-xs" color="muted">
+                          {source.note}
+                        </Typography>
+                      )}
+                    </div>
+                  )}
+                  <Link
+                    href={source.page}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="justify-self-start text-sm"
+                  >
+                    Source page <ArrowUpRight size={14} />
+                  </Link>
                 </div>
               ))}
               <Separator variant="secondary" />
               <Typography type="body-sm" color="muted">
-                Boundaries are an exploration aid. Check current eligibility with the school or Find
-                my School. No approximate locations, guessed name matches or private-school
-                enrolments are manufactured.
+                Zones are an exploration aid; check eligibility with the school or Find my School.
+                Sources are joined on school number and sector wherever they carry them. The fire
+                risk registers name facilities only, so they join on exact name and town.
+                {report?.years.acara
+                  ? " ACARA's School Profile figures are used under the My School terms of use."
+                  : ""}
               </Typography>
               <div className="grid grid-cols-1 justify-items-start gap-2">
                 <Link href="https://www.findmyschool.vic.gov.au/" target="_blank" rel="noreferrer">

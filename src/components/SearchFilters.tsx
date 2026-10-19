@@ -8,7 +8,7 @@ import {
   ToggleButtonGroup,
 } from "@heroui/react";
 import { options, schoolTypes, typeNames } from "../data";
-import { useSchoolsQuery } from "../queries";
+import { useReportQuery, useSchoolsQuery } from "../queries";
 import { filtersAtom, isFilteredAtom, resetFiltersAtom, updateFiltersAtom } from "../state/atoms";
 import { cssRgb, typeColorsAtom } from "../state/palette";
 import SelectField from "./SelectField";
@@ -20,6 +20,7 @@ export default function SearchFilters() {
   const update = useSetAtom(updateFiltersAtom);
   const reset = useSetAtom(resetFiltersAtom);
   const typeColors = useAtomValue(typeColorsAtom);
+  const { data: report } = useReportQuery();
   return (
     <div className="grid grid-cols-1 gap-4">
       <SearchField
@@ -75,7 +76,9 @@ export default function SearchFilters() {
         values={["All schools", "With enrolments", "Without enrolments"]}
         onChange={(coverage) => update({ coverage })}
       >
-        <Description>February 2025 counts cover government schools only.</Description>
+        <Description>
+          February {report?.years.enrolments ?? ""} counts, in every sector.
+        </Description>
       </SelectField>
       {filtered && (
         <Button size="sm" variant="secondary" className="w-full" onPress={reset}>

@@ -1,16 +1,9 @@
 import { useCallback, useDeferredValue } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { School, ZoneProperties, Zones } from "../data";
-import { useSchoolsQuery, useZonesQuery } from "../queries";
-import {
-  filtersAtom,
-  isFilteredAtom,
-  noticeAtom,
-  selectSchoolAtom,
-  showZonesAtom,
-  zoneLevelAtom,
-} from "./atoms";
-import { visibleSchools, visibleZones } from "./derive";
+import type { School, ZoneProperties } from "../data";
+import { useSchoolsQuery } from "../queries";
+import { filtersAtom, noticeAtom, selectSchoolAtom } from "./atoms";
+import { visibleSchools } from "./derive";
 
 const noSchools: School[] = [];
 
@@ -20,12 +13,6 @@ export function useVisibleSchools(): School[] {
   const { data = noSchools } = useSchoolsQuery();
   const filters = useDeferredValue(useAtomValue(filtersAtom));
   return visibleSchools(data, filters);
-}
-export function useVisibleZones(): Zones | null {
-  const { data } = useZonesQuery(useAtomValue(zoneLevelAtom), useAtomValue(showZonesAtom));
-  const filtered = useAtomValue(isFilteredAtom);
-  const visible = useVisibleSchools();
-  return data ? visibleZones(data, visible, filtered) : null;
 }
 export function useSelectZone() {
   const { data: schools = noSchools } = useSchoolsQuery();
@@ -37,7 +24,7 @@ export function useSelectZone() {
       if (school) selectSchool(school);
       else
         setNotice(
-          `${zone.name} · ${zone.campus}. This 2026 zone has no exact match in the 2025 school locations. Enrolment and school coordinates are unavailable.`,
+          `${zone.name} · ${zone.campus}. This ${zone.year} zone matches no school in the current locations file, so it has no enrolments or school position.`,
         );
     },
     [schools, selectSchool, setNotice],

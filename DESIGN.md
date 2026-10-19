@@ -19,9 +19,16 @@ colors:
   region-north-western: "#32ADE6"
   region-south-eastern: "#FF9500"
   region-south-western: "#FF2D55"
+  sector-government: "#1baf7a"
+  sector-catholic: "#6250d6"
+  sector-independent: "#eb6834"
+  transport-train: "#2a78d6"
+  transport-tram: "#1baf7a"
+  transport-bus: "#eb6834"
   zone-boundary: "#64748b"
   zone-boundary-dark: "#94a3b8"
   lga-boundary: "#6e578f"
+  sa2-boundary: "#116e68"
 typography:
   body:
     fontFamily: '"Inter Variable", "Inter", system-ui, sans-serif'
@@ -60,6 +67,9 @@ components:
   detail-sheet:
     height: "33dvh"
     rounded: "{rounded.sheet}"
+  legend:
+    width: "248px"
+    rounded: "{rounded.control}"
 ---
 
 # Design System: Where are the schools?
@@ -84,13 +94,29 @@ numbers, so the only saturated things on screen are the school markers themselve
 School types use five hues from Apple's system palette: blue, orange, purple, green and pink.
 They are the loudest thing in the interface, and they carry meaning, so nothing else competes at
 that saturation. Dark mode swaps each for its brighter variant. Education regions have their own
-four-colour set, used only while region colouring is on and always with a matching legend.
+four-colour set, used only while a layer colours by region and always with a matching legend.
+
+Sectors and transport modes come from a categorical set checked for colour-blind separation
+across every pair, which a map needs because any two points can sit side by side. That check holds
+for three colours at most, so sectors get aqua, violet and orange, and stops are grouped into
+train, tram and bus. Categories with an order, such as remoteness and the fire risk registers,
+take one hue at rising strength instead of separate hues.
+
+### Values
+
+Numbers are shaded along one-hue ramps built in OKLCH, so each step changes lightness by the same
+amount: violet, teal, blue and orange. In light mode a ramp runs pale to deep; in dark mode it runs
+the other way, so the high end is always the step that stands out from the map. Points skip the
+palest steps, which would vanish on the basemap. Change over time uses a diverging pair, red for a
+fall and blue for a rise, with a grey at zero that recedes into the map. Fixed scales such as
+SEIFA deciles get one step per value.
 
 ### Map surfaces
 
-Enrolment zones and local government boundaries stay neutral. Zones use slate, boundaries use
-violet, and both sit well below the markers in weight. Water and land have separate light and dark
-values so the offline preview reads in either scheme.
+Enrolment zones, council boundaries and statistical areas stay neutral when drawn as boundaries.
+Zones use slate, councils violet and SA2 areas a dark teal, and all three sit well below the
+markers in weight. Shaded areas are separated by a hairline in the colour of the ground. Water and
+land have separate light and dark values so the offline preview reads in either scheme.
 
 ### Interface
 
@@ -98,8 +124,10 @@ HeroUI's default theme supplies the surface, foreground, muted, separator and ac
 both schemes. Nothing overrides them. The accent is HeroUI's blue and appears on controls only,
 never on the map, which keeps it clear of the blue that means a primary school.
 
-**The Legend Agreement Rule.** Markers, list dots and the legend use the same active mapping.
-Switching to region colours changes the legend labels with it.
+**The Legend Agreement Rule.** The map, the legend and the thumbnails in the layer list read from
+one computed view of each layer, so a scale or a category colour can never differ between them.
+The legend lists every visible layer in the same order as the list. The result list keeps the
+school type dots whatever the layers show.
 
 ## Typography
 
@@ -117,12 +145,12 @@ The map fills the viewport at every width. Above 760px the explorer panel floats
 selected. The detail panel is as tall as the school's details, up to the height of the map, and
 each school opens scrolled to the top.
 
-The local government summary and the zone notice stack as cards in the top left of the open map,
+The area card and the zone notice stack as cards in the top left of the open map,
 320px wide, just right of whichever panels are showing. When the detail panel opens they move over
 beside it. On a screen too narrow for that, they stop short of the camera controls and overlap the
 detail panel instead.
 
-The map's viewport padding matches whatever the panels and the summary card cover, so the camera
+The map's viewport padding matches whatever the panels and the area card cover, so the camera
 centres what the reader can actually see, and the basemap receives the same padding. It always
 leaves at least 240px of map open.
 
@@ -151,8 +179,8 @@ shape and entrance.
 Panels arrive and leave the way HeroUI's own overlays do. react-aria's animation hooks set
 `data-entering` and `data-exiting` on a panel, and tw-animate-css keyframes run against those
 attributes with the timing and curve of HeroUI's drawer: 250ms in, 200ms out. Each panel fades
-and slides in from the side it is anchored to. The explorer, the detail panel, the local
-government summary and the zone notice all come from the left, the map controls from the right
+and slides in from the side it is anchored to. The explorer, the detail panel, the area card and
+the zone notice all come from the left, the map controls from the right
 and the legend from below. The phone sheet rises from the bottom edge, and the map tooltip keeps
 HeroUI's quicker tooltip timing. A closing panel keeps showing what it held until it has gone, and
 it can no longer be clicked or focused.
@@ -165,8 +193,15 @@ Everything else that moves uses Motion on the same curve and timing:
 - The cards slide sideways as the detail panel opens and closes.
 - The map's viewport padding eases to its new value, so the map glides over with the panels
   rather than jumping.
+- A layer's settings open and close by easing their height while they fade, and the box keeps
+  easing when a change of display adds or removes controls inside it.
+- A new layer grows into the top of the list and a removed one folds away.
+- A dragged layer lifts into a copy that follows the pointer, its neighbours slide aside to make
+  room, and on release the copy settles into its slot on the panel curve.
 
-When the browser asks for reduced motion, all of it happens at once without animating.
+When the browser asks for reduced motion, all of it happens at once without animating. The map
+itself recolours instantly: deck.gl's attribute transitions run on the GPU and stalled the page for
+seconds on large zone layers.
 
 ## Shapes
 
@@ -182,10 +217,25 @@ placement rather than for looks.
 
 ### Explorer panel
 
-Tabs split search and filters from the map layer switches, so the result list is never pushed
-below the fold. Search is a `SearchField`, school types are a detached `ToggleButtonGroup`, and the
+Tabs split search and filters from the layer list, so the result list is never pushed below the
+fold. Search is a `SearchField`, school types are a detached `ToggleButtonGroup`, and the
 remaining filters are `Select` fields in the secondary variant, which reads as tinted rather than
 white on an already white surface.
+
+### Layer list
+
+The map draws whatever the list holds, top of the list on top of the map. Each row has a grip, a
+thumbnail of how the layer draws, its dataset and a one-line summary such as "Shaded by ICSEA",
+and an eye toggle. Pressing the row opens its settings underneath: a `Select` for the dataset and
+one for how it is displayed, then only the controls that display uses. Fields are grouped by
+topic and list only measures with data. Short choices (classes, palette, total or average) are
+toggle button rows, and sizes and opacity are `Slider`s. One layer is open at a time. Rows take
+the field tint on hover and while open, so they read as rows rather than as cards inside a card.
+"Add layer" is a `Dropdown` of datasets with a line describing each.
+
+Dragging works from the grip by pointer, touch or keyboard, and the list announces each move. The
+dragged row leaves a faint slot behind and travels as a lifted copy drawn on the page body, which
+the panel's blur would otherwise offset from the pointer.
 
 ### Results
 
@@ -196,28 +246,35 @@ with the fields above it.
 
 ### Detail
 
-A `Typography` heading, `Chip` tags for type and sector, a definition list, and one `Meter` per
-year level with the track at full width. Missing enrolments are an `Alert`, never a zero. Closing
-is a `CloseButton` at the top right, which is the same control used for the boundary summary, the
-zone notice, the phone drawer and the About modal.
+A `Typography` heading, `Chip` tags for type, sector and any fire risk listing, a definition list,
+and one `Meter` per year level with the track at full width. Missing enrolments are an `Alert`,
+never a zero. ACARA's profile follows as ICSEA, a bar of the four advantage quarters in one ink at
+rising strength, and staff and student facts, credited to ACARA. Transport access and zone years
+close the panel. Closing is a `CloseButton` at the top right, which is the same control used for
+the area card, the zone notice, the phone drawer and the About modal.
 
-### Local government summary
+### Area card
 
-A `Card` shaped like the panels, with a `Typography` heading, a description and a secondary
-`Table` of sector totals. The glass supplies the surface, so the table has no tinted header or
-white body: rules separate the rows, numbers align right under right-aligned headings, and the
-outer columns line up with the card's edges. The close button sits outside the changing contents,
-so it stays still while areas crossfade.
+A `Card` shaped like the panels, opened by clicking a council or SA2 area or by picking one in the
+layer's settings. It holds a `Typography` heading, a secondary `Table` of schools and FTE by
+sector, then population, school-age residents and SEIFA deciles as a definition list. The glass
+supplies the surface, so the table has no tinted header or white body: rules separate the rows,
+numbers align right under right-aligned headings, and the outer columns line up with the card's
+edges. Its totals cover every school in the area whatever the filters, so the card describes the
+place. The close button sits outside the changing contents, so it stays still while areas
+crossfade.
 
 ### Map
 
-School points carry a pale outline in light mode and a dark one in dark mode. Optional enrolment
-sizing uses a square-root radius clamped to 3 to 28 pixels, and fades points with no data. A ring
-marks the selected school. Selecting one flies the camera rather than cutting, and holds still
-when the browser asks for reduced motion.
+School points carry a pale outline in light mode and a dark one in dark mode. Proportional circles
+scale their area, not their radius, with the value, and the largest is set in the layer's
+settings. Graduated points draw missing values small and grey beneath the rest. A ring marks the
+selected school whatever the layers show. Selecting one flies the camera rather than cutting, and
+holds still when the browser asks for reduced motion. Hover and click go to the topmost feature
+under the pointer, whichever layer it is in.
 
-**The Independent Layers Rule.** School points, enrolment zones and boundaries stay independently
-controllable and visually distinct.
+**The Independent Layers Rule.** Every layer is controlled on its own and draws in its own
+style: zones, council boundaries and statistical areas never share an outline colour.
 
 ## Do's and Don'ts
 
@@ -226,12 +283,14 @@ controllable and visually distinct.
 - **Do** let the map hold the colour and keep the panels quiet.
 - **Do** reach for a HeroUI component before writing a class.
 - **Do** pair category colour with a label and keep the legend in step.
+- **Do** credit ACARA wherever its figures are drawn or listed.
 - **Do** keep visible keyboard focus and honour reduced motion, including the camera.
 
 ### Don't:
 
 - **Don't** switch numbers to tabular figures.
 - **Don't** imply a missing enrolment is zero.
+- **Don't** offer ways to rank schools by results. ACARA's terms rule out league tables.
 - **Don't** style enrolment zones and boundaries alike.
 - **Don't** put the interface accent on the map, where blue already means a primary school.
 - **Don't** darken the map behind the detail sheet.

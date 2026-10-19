@@ -16,18 +16,19 @@ for (const [name, viewport] of [
   const page = await browser.newPage({ viewport });
   page.on("pageerror", (e) => console.error(name, e.message));
   await page.goto("http://127.0.0.1:5173");
-  await page.locator(".count").filter({ hasText: "2,301" }).waitFor({ state: "attached" });
-  await page.waitForFunction(() => !document.body.innerText.includes("Loading zone boundaries"));
+  await page.locator(".count").filter({ hasText: "schools" }).waitFor({ state: "attached" });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `artifacts/${name}.png` });
   if (name === "mobile") {
-    await page.getByRole("button", { name: /Explore .* schools/ }).click();
+    await page.getByRole("button", { name: "Schools", exact: true }).click();
     await page.screenshot({ path: "artifacts/mobile-panel.png" });
   }
   if (name === "desktop") {
-    await page.getByText("Local government areas", { exact: true }).click();
-    await page.getByLabel("Inspect an LGA").selectOption({ label: "Melbourne" });
-    await page.screenshot({ path: "artifacts/desktop-lga.png" });
+    await page.getByRole("tab", { name: "Map layers" }).click();
+    await page.getByRole("button", { name: "Add layer" }).click();
+    await page.getByRole("menuitem", { name: /^Statistical areas/ }).click();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: "artifacts/desktop-layers.png" });
   }
   await page.close();
 }

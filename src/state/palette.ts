@@ -38,6 +38,17 @@ export const regionColorsByScheme = byScheme<Record<string, Rgb>>(
     "South-Western Victoria": [255, 55, 95],
   },
 );
+// Sector and transport mode colours come from a categorical set validated for colour-blind
+// separation across every pair, which a map needs because any two points can sit side by side.
+// Three categories is the most that set holds, so transport modes are grouped into three.
+export const sectorColorsByScheme = byScheme<Record<string, Rgb>>(
+  { Government: [27, 175, 122], Catholic: [98, 80, 214], Independent: [235, 104, 52] },
+  { Government: [25, 158, 112], Catholic: [144, 133, 233], Independent: [217, 89, 38] },
+);
+export const transportColorsByScheme = byScheme<Record<string, Rgb>>(
+  { Train: [42, 120, 214], Tram: [27, 175, 122], Bus: [235, 104, 52] },
+  { Train: [57, 135, 229], Tram: [25, 158, 112], Bus: [217, 89, 38] },
+);
 export interface MapSurfaces {
   zoneFill: Rgba;
   zoneFillSelected: Rgba;
@@ -45,7 +56,14 @@ export interface MapSurfaces {
   zoneLineSelected: Rgba;
   lgaFill: Rgba;
   lgaLine: Rgba;
+  sa2Fill: Rgba;
+  sa2Line: Rgba;
+  /** The hairline between shaded areas, in the colour of the ground they sit on. */
+  areaSeam: Rgba;
   markerOutline: Rgba;
+  /** Points drawn in one colour, and values with no data. */
+  single: Rgb;
+  missing: Rgb;
   selectedRing: Rgb;
   land: Rgb;
   landLine: Rgb;
@@ -63,7 +81,12 @@ export const mapSurfacesByScheme = byScheme<MapSurfaces>(
     zoneLineSelected: [51, 65, 85, 235],
     lgaFill: [99, 91, 132, 10],
     lgaLine: [110, 87, 143, 200],
+    sa2Fill: [17, 94, 89, 8],
+    sa2Line: [17, 110, 104, 150],
+    areaSeam: [255, 255, 255, 150],
     markerOutline: [255, 255, 255, 235],
+    single: [71, 85, 105],
+    missing: [160, 166, 172],
     selectedRing: [22, 28, 38],
     land: [235, 238, 226],
     landLine: [180, 195, 186],
@@ -78,7 +101,12 @@ export const mapSurfacesByScheme = byScheme<MapSurfaces>(
     zoneLineSelected: [226, 232, 240, 235],
     lgaFill: [151, 132, 181, 20],
     lgaLine: [151, 132, 181, 205],
+    sa2Fill: [94, 234, 212, 14],
+    sa2Line: [94, 214, 196, 150],
+    areaSeam: [16, 20, 26, 170],
     markerOutline: [16, 20, 26, 235],
+    single: [203, 213, 225],
+    missing: [104, 112, 120],
     selectedRing: [240, 246, 252],
     land: [30, 38, 36],
     landLine: [58, 72, 68],
@@ -90,6 +118,7 @@ export const mapSurfacesByScheme = byScheme<MapSurfaces>(
 export const typeColorsAtom = atom((get) => typeColorsByScheme[get(resolvedThemeAtom)]);
 export const regionColorsAtom = atom((get) => regionColorsByScheme[get(resolvedThemeAtom)]);
 export const mapSurfacesAtom = atom((get) => mapSurfacesByScheme[get(resolvedThemeAtom)]);
+export const sectorColorsAtom = atom((get) => sectorColorsByScheme[get(resolvedThemeAtom)]);
 /** `rgb(r g b)` for a CSS background, with a neutral when a category is unknown. */
 export const cssRgb = (rgb: Rgb | undefined, fallback: Rgb = [120, 128, 138]) =>
   `rgb(${(rgb ?? fallback).join(" ")})`;

@@ -8,3 +8,11 @@ playwright-report/
 __pycache__/
 *.tsbuildinfo
 artifacts/
+
+# Data is fetched and built locally (npm run data), never committed.
+data/sources/
+public/data/
+
+# Research behind the data choices, kept locally.
+research_notes/
+reports/
